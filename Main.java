@@ -20,27 +20,26 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) throws IOException {  // вместо перехвата исключений используем throws
-        String text = "";
+        String text = "[{u0027Textu0027:u0027";
         String API_URL = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&";
         try {
             File file = new File("text.txt");
             FileReader fr = new FileReader(file);
             BufferedReader reader = new BufferedReader(fr);
             String line = reader.readLine();
-            //text = "[{'Text':'";
             while (line != null) {
-                //System.out.println(line);
                 text = text + line;
                 line = reader.readLine();
             }
-            //text = "'}]";
+            text = text + "u0027}]";
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         Gson g = new Gson();
-        String POSTData = g.toJson(text);
+        String POSTData = g.toJson(text).replaceAll("u0027", "\'");
+
 
         System.out.print("Введите язык: ");
         Scanner in = new Scanner(System.in);
@@ -50,10 +49,10 @@ public class Main {
         System.out.println(url);
 
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-        String region = "westeurope", key = "82e622ccc27b4ad0af0918182329a742";
+        String region = "westeurope", key = "82e622ccc27b4ad0af0918182329a742" ,content = "application/json";
         urlConnection.setRequestProperty("Ocp-Apim-Subscription-Key", key);
         urlConnection.setRequestProperty("Ocp-Apim-Subscription-Region", region);
-        urlConnection.setRequestProperty("Content-Type", POSTData);
+        urlConnection.setRequestProperty("Content-Type", content);
 
         urlConnection.setDoOutput(true);
         OutputStream out = urlConnection.getOutputStream();
