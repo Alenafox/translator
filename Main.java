@@ -1,16 +1,15 @@
 package com.company;
 
-/*
-Создать консольное приложение для перевода текста
-Запросить у пользователя имя файла и направление перевода
-Вариант: передать эти сведения как параметры командной строки String[] args
-Обратиться к API переводчика, сделать запрос методом POST
-Полученный ответ десереализовать из JSON в объект,
-Вывести результат перевода и статус запроса (успешно или нет)
-Справочник по API https://docs.microsoft.com/ru-ru/azure/cognitive-services/translator/reference/v3-0-reference
-*/
-
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+import io.cucumber.datatable.dependency.com.fasterxml.jackson.databind.ObjectMapper;
+import org.jooq.tools.json.JSONObject;
+import org.jooq.tools.json.JSONParser;
+import org.jooq.tools.json.ParseException;
+import org.junit.Assert;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -19,9 +18,9 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {  // вместо перехвата исключений используем throws
+    public static void main(String[] args) throws IOException, ParseException {  // вместо перехвата исключений используем throws
+        String API_URL = "https://api.cognitive.microsofttranslator.com/translate";
         String text = "[{u0027Textu0027:u0027";
-        String API_URL = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&";
         try {
             File file = new File("text.txt");
             FileReader fr = new FileReader(file);
@@ -38,15 +37,14 @@ public class Main {
             e.printStackTrace();
         }
         Gson g = new Gson();
-        String POSTData = g.toJson(text).replaceAll("u0027", "\'");
-
+        String POSTData = text.replaceAll("u0027", "\'");
+        System.out.println(POSTData);
 
         System.out.print("Введите язык: ");
         Scanner in = new Scanner(System.in);
         String lang= in.nextLine();
 
-        URL url = new URL(API_URL+"to="+lang);
-        System.out.println(url);
+        URL url = new URL(API_URL+"?api-version=3.0&to="+lang);
 
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         String region = "westeurope", key = "82e622ccc27b4ad0af0918182329a742" ,content = "application/json";
@@ -54,14 +52,25 @@ public class Main {
         urlConnection.setRequestProperty("Ocp-Apim-Subscription-Region", region);
         urlConnection.setRequestProperty("Content-Type", content);
 
-        urlConnection.setDoOutput(true);
+        urlConnection.setDoOutput(true); // setting POST method
+        // creating stream for writing request
         OutputStream out = urlConnection.getOutputStream();
         out.write(POSTData.getBytes()); // преобразуем строку в байты и пишем в поток
 
         Scanner inn = new Scanner(urlConnection.getInputStream());
+        JSONParser parser = new JSONParser();
+        PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
         if (inn.hasNext()) {
-            System.out.println(inn.nextLine());
+            String str = inn.nextLine();
+            int len = str.length();
+            str = str.substring(1, len-1);
+
+            TranslateResponce p = g.fromJson(str, TranslateResponce.class);
+            String out_text = p.translations.get(0).text;
+            writer.println(out_text);
+
         } else System.out.println("No output returned");
         urlConnection.disconnect();
+        writer.close();
     }
 }
